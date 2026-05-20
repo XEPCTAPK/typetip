@@ -1,0 +1,37 @@
+# Сборка и дистрибутив
+out/
+dist/
+*.vsix
+
+# Зависимости (их всегда ставим через npm install)
+node_modules/
+
+# Временные файлы тестов и отчеты
+.vscode-test/
+.vscode-test.mjs
+.vscode-test.js
+coverage/
+.nyc_output/
+\zx-references
+
+# Логи
+*.log
+.eslintcache
+.history/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Системные файлы (MacOS / Windows)
+.DS_Store
+Thumbs.db
+
+# Конфиги линтера и TypeScript, если они генерируют временные файлы
+.eslintcache
+
+# Игнорируем специфичные для VS Code временные файлы, если они появятся
+.history/
+
+
+
+typetip.code-workspace

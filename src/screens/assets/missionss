@@ -1,0 +1,49 @@
+/**
+ * @fileoverview База тестового контента и синтаксических разметок для Warp Vibe Engine.
+ * Содержит паттерны разной длины и плотности спецсимволов для стресс-тестирования рендеринга.
+ * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation //™
+ */
+
+export const DRILL_CONTENT = {
+  // 1. Взрывной синтаксис (Идеально для DASH MODE)
+  // Проверка коротких строк, завязанных на реакцию и координацию пальцев
+  DASH_BLITZ: [
+    `const [vibe, setVibe] = useState(() => "just make it work");`,
+    `export const mid = (l: number, r: number): number => (l + r) >> 1;`,
+    `import { TypeTipTerminal } from "./engine/terminal";`,
+    `await repository.sync({ force: true, cascade: true });`,
+    `const { id, token, roles: [admin] } = user.unwrap();`,
+    `if (!ctx.isSafeMode && ctx.terminalWidth > 110) { return; }`,
+    `process.env.NODE_ENV === "production" ? run() : debug();`
+  ],
+
+  // 2. Синтаксический Ад (Для проверки экранирования и ANSI-багов)
+  // Тут максимальная плотность скобок, кавычек и редких символов.
+  // Поможет проверить, не ломается ли каретка на обратных слэшах и регулярках.
+  SYNTAX_HELL: [
+    `const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/g;`,
+    `for (let i = 0; i < arr.length; i++) { matrix[y][x] = \`\\x1b[\${y};\${x}H\`; }`,
+    `if (typeof data === 'string' && data.match(/[\\x00-\\x1F\\x7F-\\x9F]/))`,
+    `const flags = { isWide: w >= 110, isLight: theme === "Light" };`,
+    `return () => { clearInterval(interval); emitter.dispose(); };`,
+    `const payload = JSON.stringify({ files: { [name]: { content } } });`
+  ],
+
+  // 3. Backend-Вайб (Python / FastAPI / SQL)
+  // Длинные ключевые слова, змейка (snake_case) и типизация для проверки плавности CPM.
+  BACKEND_VIBE: [
+    `@app.get("/api/v1/health", response_model=HealthCheckSchema)`,
+    `async def get_cluster_status(db: Session = Depends(get_db)):`,
+    `select user_id, count(*) from sessions group by user_id having count(*) > 10;`,
+    `logger.error(f"UnicodeDecodeError on signature: {e.encoding}")`,
+    `supabase.table("leaderboard").insert({"username": user, "cpm": score})`,
+    `class XRayAnalyzer(BaseParser): def __init__(self, target_dir: str):`
+  ],
+
+  // 4. Тяжелые структуры (Для многострочного рендеринга в будущем)
+  // Единые блоки текста, где важна проверка правильного переноса строк (Line Wrap).
+  STRUCT_BLOCKS: [
+    `export async function bootstrap() { const app = await NestFactory.create(AppModule); app.useGlobalPipes(new ValidationPipe()); await app.listen(3000); }`,
+    `try { const res = await https.request(options); if (res.statusCode === 200) { resolve(true); } else { resolve(false); } } catch (err) { logger.error(err); return null; }`
+  ]
+};
