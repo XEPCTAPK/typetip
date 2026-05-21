@@ -1,0 +1,57 @@
+/**
+ * Класс для рендеринга пиксельного изображения яблока в терминале VS Code.
+ * Использует ANSI escape-последовательности Truecolor (24-bit) для вывода цветных блоков.
+ * * @author AI-crew TJMIWGVCEC
+ */
+export class TerminalAppleRenderer {
+    // Цветовая палитра RGB для элементов яблока
+    private readonly colors: Record<string, string> = {
+        " ": "\x1b[0m  ",                                 // Прозрачный фон (два пробела)
+        "G": "\x1b[48;2;46;204;113m  \x1b[0m",            // Зеленый лист (Emerald)
+        "B": "\x1b[48;2;139;94;60m  \x1b[0m",             // Коричневый черешок
+        "R": "\x1b[48;2;231;76;60m  \x1b[0m",             // Красная кожура (Alizarin)
+        "D": "\x1b[48;2;192;57;43m  \x1b[0m",             // Темно-красная тень (Pomegranate)
+        "W": "\x1b[48;2;255;255;255m  \x1b[0m"            // Белый блик
+    };
+
+    // Двумерная карта пикселей яблока (12x12)
+    private readonly appleMap: string[][] = [
+        [" ", " ", " ", " ", " ", "G", "G", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", "G", "B", " ", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", "B", " ", " ", " ", " ", " "],
+        [" ", " ", " ", "R", "R", "R", "B", "R", "R", " ", " ", " "],
+        [" ", " ", "R", "W", "W", "R", "R", "R", "R", "R", " ", " "],
+        [" ", "R", "W", "W", "R", "R", "R", "R", "R", "R", "R", " "],
+        [" ", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", " "],
+        [" ", "R", "R", "R", "R", "R", "R", "R", "R", "D", "D", " "],
+        [" ", "R", "R", "R", "R", "R", "R", "R", "D", "D", "D", " "],
+        [" ", " ", "R", "R", "R", "R", "R", "R", "D", "D", " ", " "],
+        [" ", " ", " ", "R", "R", " ", " ", "R", "R", " ", " ", " "]
+    ];
+
+    /**
+     * Отрисовывает яблоко в консоли с возможностью масштабирования.
+     * * @param scale Масштаб изображения (множитель размера пикселей от 1 до 5)
+     */
+    public render(scale: number = 1): void {
+        if (scale < 1 || scale > 5) { throw new Error("Масштаб должен быть в диапазоне от 1 до 5"); }
+
+        const output: string[] = [];
+
+        for (const row of this.appleMap) {
+            // Дублируем строки для сохранения пропорций пикселей при масштабировании
+            for (let sRow = 0; sRow < scale; sRow++) {
+                let line = "";
+                for (const pixel of row) {
+                    const ansiColor = this.colors[pixel] || this.colors[" "];
+                    if (ansiColor === undefined) { continue; }
+                    // Дублируем пиксели по горизонтали в соответствии с масштабом
+                    line += ansiColor.repeat(scale);
+                }
+                output.push(line);
+            }
+        }
+
+        console.log(output.join("\n"));
+    }
+}

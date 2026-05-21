@@ -233,72 +233,46 @@ async function handleAiOrchestrator(prompt: string, provider: string, secrets: v
 }
 
 /**
- * Отправляет запрос в Google AI Studio с использованием модели Gemini 3.5 Flash.
- * Полностью соответствует официальной документации Google AI REST API.
- * * @param promptText Текст запроса от пользователя (код или вопрос)
- * @param key Валидный API ключ от Google AI Studio
- * @returns Строка с ответом модели или форматированное сообщение об ошибке
+ * Отправляет запрос в Google AI Studio с использованием новейшей модели gemini-3.5-flash (Релиз GA от 19.05.2026).
+ * Оптимизировано для агентского управления и высокой скорости генерации кода.
  */
 async function requestGeminiPro(promptText: string, key: string): Promise<string> {
     const config = vscode.workspace.getConfiguration('typetip');
     const activeModel = config.get<string>('aiModel') || 'gemini-3.5-flash';
-    
-    // Официальный эндпоинт для генерации контента
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${key}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/${activeModel}:generateContent?key=${key}`;
     
     try {
         const res = await fetch(url, { 
             method: 'POST', 
-            headers: { 
-                'Content-Type': 'application/json' 
-            }, 
+            headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({
-                // Передаем основное содержимое запроса
-                contents: [
-                    { 
-                        role: 'user', 
-                        parts: [{ text: promptText }] 
-                    }
-                ],
-                // Внедрение системного промпта по канонам Google Документации
+                contents: [{ role: 'user', parts: [{ text: promptText }] }],
                 systemInstruction: {
-                    parts: [
-                        { 
-                            text: "Ты — ведущий AI-архитектор TJMIWGVCEC. Пиши код на TypeScript строго с отступами в 4 пробела. Все защитные проверки и выходы из функций (if гарды) пиши строго в ОДНУ строку без переносов скобок. ОБЯЗАТЕЛЬНО генерируй или сохраняй JSDoc-комментарии на русском языке в шапке функций, чтобы встроенный Git Diff в VS Code плавно сопоставлял изменения. Линтер должен мурчать." 
-                        }
-                    ]
+                    parts: [{ 
+                        text: "Ты — ведущий архитектор 'TJMIWGVCEC'. Пиши код на TypeScript строго с отступами в 4 пробела. Все if-гарды пиши строго в ОДНУ строку. ОБЯЗАТЕЛЬНО генерируй или сохраняй JSDoc-комментарии на русском языке в шапке функций, чтобы встроенный Git Diff в VS Code плавно сопоставлял изменения и не затирал историю. Линтер должен мурчать." 
+                    }]
                 },
-                // Тонкая настройка поведения модели
                 generationConfig: { 
-                    temperature: 0.3,       // Минимизируем галлюцинации, повышаем строгость ГОСТа
-                    maxOutputTokens: 8192,   // Максимальный буфер выдачи для Жмени 3.5 Flash GA
-                    topP: 0.95
+                    temperature: 0.3,      
+                    maxOutputTokens: 8192  
                 }
             }) 
         });
 
-        // Проверяем статус ответа сервера перед парсингом JSON
-        if (!res.ok) {
-            return `<b>[ОШИБКА СЕРВЕРА]:</b> HTTP статус ${res.status} (${res.statusText})`;
-        }
-
         const data: any = await res.json();
 
-        // Обработка ошибок, прилетевших от самого API Google
         if (data?.error) {
             return `<b>[ОШИБКА API]:</b> ${data.error.message} (Код: ${data.error.code})`;
         }
 
-        // Безопасное извлечение текста из структуры ответа Google
         const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (replyText) {
             return replyText;
         }
 
-        return `<b>[СИСТЕМА]:</b> Получен пустой ответ от модели. Сырые данные: ${JSON.stringify(data)}`;
+        return `<b>[СИСТЕМА]:</b> Пустой ответ. Сырые данные: ${JSON.stringify(data)}`;
 
     } catch (error: any) { 
-        // Перехват системных или сетевых сбоев (например, отвалился интернет)
         return `<b>[ОШИБКА СЕТЕВОГО ХАБА]:</b> ${error?.message || error}`; 
     }
 }
@@ -416,20 +390,17 @@ function getLocalChatHTML(isAuth: boolean, currentProvider: string): string {
                             const reportDiv = document.createElement('div');
                             reportDiv.className = 'msg agent';
                             reportDiv.style.color = '#39ff14';
-                            reportDiv.innerHTML = '<b>[ВЕРИФИКАЦИЯ СВЯЗИ]:</b><br><pre style="margin:5px 0; font-family:inherit;">' + lines.join('\\n') + '</pre>';
+                            reportDiv.innerHTML = '<b>[ВЕРИФИКАЦИЯ СВЯЗИ]:</b><br><pre style="margin:5px 0; font-family:inherit;">' + lines.join('\n') + '</pre>';
                             chatArea.appendChild(reportDiv);
                             chatArea.scrollTop = chatArea.scrollHeight;
                         }
                     }
-
                     if (message.command === 'disconnectSuccess') {
                         authBlock.style.display = 'flex';
                         chatBlock.style.display = 'none';
                         disconnectBtn.style.display = 'none';
                     }
-
-                    // Синхронизировано с бэкендом (принимаем и aiResponse, и старый формат на всякий случай)
-                    if (message.command === 'aiResponse' || message.command === 'agentResponse') {
+                    if (message.command === 'agentResponse') {
                         const agentDiv = document.createElement('div');
                         agentDiv.className = 'msg agent';
                         agentDiv.innerHTML = '<b>[Агент]:</b> ' + message.text;
@@ -439,10 +410,7 @@ function getLocalChatHTML(isAuth: boolean, currentProvider: string): string {
                 });
 
                 userInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && e.ctrlKey) { 
-                        e.preventDefault(); 
-                        sendMessage(); 
-                    }
+                    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); sendMessage(); }
                 });
             </script>
         </body>
