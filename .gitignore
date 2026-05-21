@@ -32,7 +32,7 @@ Thumbs.db
 # Игнорируем специфичные для VS Code временные файлы, если они появятся
 .history/
 
-
+repomix-output.xml
 процесс/
 vibe_chat.md
 typetip.code-workspace

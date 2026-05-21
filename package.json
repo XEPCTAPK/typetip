@@ -15,101 +15,123 @@
     "configuration": {
       "title": "TypeTip Configuration",
       "properties": {
-          "typetip.username": {
-              "type": "string",
-              "default": "Anonymous_Wolf",
-              "description": "Твой позывной в клановой таблице рекордов."
-            },
-                        "typetip.aiProvider": {
-                "type": "string",
-                "default": "gemini",
-                "enum": ["gemini", "yandex"],
-                "enumDescriptions": [
-                    "Использовать Google Gemini API Pro",
-                    "Использовать Яндекс Алису (YandexGPT Cloud)"
-                ],
-                "description": "Выбери, какой искусственный интеллект будет отвечать тебе во вкладке чата."
-            },
-            "typetip.yandexFolderId": {
-                "type": "string",
-                "default": "",
-                "description": "Идентификатор каталога (Folder ID) из Yandex Cloud (нужен только для Алисы)."
-            },
-            "typetip.githubToken": {
-              "type": "string",
-              "default": "",
-              "order": 1,
-              "description": "Personal Access Token (PAT) от GitHub для работы с Gist."
-            },
-            "typetip.gistId": {
-              "type": "string",
-              "default": "",
-              "order": 2,
-              "description": "ID приватного Gist файла, созданного для твоей банды."
-            },
-            "typetip.terminalDisplayMode": {
-            "type": "string",
-            "enum": ["maximal", "editor", "panel"],
-            "default": "editor",
-            "order": 3,
-            "description": "Режим отображения терминала: 'maximal' - z mode, 'editor' - отдельной вкладкой вместо кода, 'panel' - стандартный подвал."
+        "typetip.username": {
+          "type": "string",
+          "default": "Anonymous_Wolf",
+          "description": "Твой позывной в клановой таблице рекордов."
         },
-        
+        "typetip.aiProvider": {
+          "type": "string",
+          "default": "gemini",
+          "enum": [
+            "gemini",
+            "yandex"
+          ],
+          "enumDescriptions": [
+            "Использовать Google Gemini API Pro",
+            "Использовать Яндекс Алису (YandexGPT Cloud)"
+          ],
+          "description": "Выбери, какой искусственный интеллект будет отвечать тебе во вкладке чата."
+        },
+        "typetip.yandexFolderId": {
+          "type": "string",
+          "default": "",
+          "description": "Идентификатор каталога (Folder ID) из Yandex Cloud (нужен только для Алисы)."
+        },
+        "typetip.githubToken": {
+          "type": "string",
+          "default": "",
+          "order": 1,
+          "description": "Personal Access Token (PAT) от GitHub для работы с Gist."
+        },
+        "typetip.gistId": {
+          "type": "string",
+          "default": "",
+          "order": 2,
+          "description": "ID приватного Gist файла, созданного для твоей банды."
+        },
+        "typetip.terminalDisplayMode": {
+          "type": "string",
+          "enum": [
+            "maximal",
+            "editor",
+            "panel"
+          ],
+          "default": "editor",
+          "order": 3,
+          "description": "Режим отображения терминала: 'maximal' - z mode, 'editor' - отдельной вкладкой вместо кода, 'panel' - стандартный подвал."
+        },
         "typetip.fingerColor": {
-        "type": "string",
-        "enum": ["Yellow", "Cyan", "Magenta", "Green", "White"],
-        "default": "Yellow",
-        "order": 4,
-        "description": "Цвет активного пальца в терминале"
+          "type": "string",
+          "enum": [
+            "Yellow",
+            "Cyan",
+            "Magenta",
+            "Green",
+            "White"
+          ],
+          "default": "Yellow",
+          "order": 4,
+          "description": "Цвет активного пальца в терминале"
         },
         "typetip.aiTone": {
-        "type": "string",
-        "enum": ["Supportive", "Depressing", "Mocking", "Neutral"],
-        "default": "Supportive",
-        "order": 5,
-        "description": "Тон комментариев ИИ после сессии"
-      },
+          "type": "string",
+          "enum": [
+            "Supportive",
+            "Depressing",
+            "Mocking",
+            "Neutral"
+          ],
+          "default": "Supportive",
+          "order": 5,
+          "description": "Тон комментариев ИИ после сессии"
+        },
         "typetip.keyboardOpacity": {
-        "type": "number",
-        "default": 100,
-        "description": "Прозрачность клавиатуры (от 0 до 100)"
+          "type": "number",
+          "default": 100,
+          "description": "Прозрачность клавиатуры (от 0 до 100)"
         },
         "typetip.highlightType": {
-            "type": "string",
-            "enum": ["invert", "focus"],
-            "default": "invert",
-            "description": "Тип выделения целевой клавиши: Инверсия или Мягкий фокус."
+          "type": "string",
+          "enum": [
+            "invert",
+            "focus"
+          ],
+          "default": "invert",
+          "description": "Тип выделения целевой клавиши: Инверсия или Мягкий фокус."
         },
         "typetip.highlightBrightness": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 255,
-            "default": 252,
-            "description": "Яркость цвета KEY_FOCUS (0-255)."
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "default": 252,
+          "description": "Яркость цвета KEY_FOCUS (0-255)."
         },
         "typetip.statusBarPosition": {
-            "type": "string",
-            "enum": ["left", "right"],
-            "default": "left",
-            "order": 6,
-            "description": "Расположение кнопки в статус-баре."
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ],
+          "default": "left",
+          "order": 6,
+          "description": "Расположение кнопки в статус-баре."
         },
         "typetip.hideKeyboardLevel": {
-            "type": "integer",
-            "default": 250,
-            "description": "Скорость (CPM), при которой клавиатура исчезает."
+          "type": "integer",
+          "default": 250,
+          "description": "Скорость (CPM), при которой клавиатура исчезает."
         },
         "typetip.alwaysShowKeyboard": {
-            "type": "boolean",
-            "default": false,
-            "description": "Всегда показывать клавиатуру, игнорируя уровень мастерства."
+          "type": "boolean",
+          "default": false,
+          "description": "Всегда показывать клавиатуру, игнорируя уровень мастерства."
         },
-
         "typetip.reminderInterval": {
-        "type": "number",
-        "default": 0,
-        "description": "Через сколько минут напомнить о тренировке (0 — выключить)"
-      }
+          "type": "number",
+          "default": 0,
+          "description": "Через сколько минут напомнить о тренировке (0 — выключить)"
+        }
       }
     },
     "commands": [
@@ -119,7 +141,7 @@
       },
       {
         "command": "typetip.startDash",
-            "title": "TypeTip: Start DASH Mode"
+        "title": "TypeTip: Start DASH Mode"
       },
       {
         "command": "typetip.startRain",
@@ -127,32 +149,30 @@
       },
       {
         "command": "typetip.resetStats",
-            "title": "TypeTip: Reset Stats"
+        "title": "TypeTip: Reset Stats"
       },
       {
         "command": "typetip.startVibeGameOne",
-            "title": "TypeTip: - Как дела, Брад?"
+        "title": "TypeTip: - Как дела, Брад?"
       },
       {
         "command": "vibecoding.openChatSite",
-            "title": "Технолоожи: 'оно само делает'"
+        "title": "Технолоожи: 'оно само делает'"
       }
-
     ]
   },
   "keybindings": [
-        {
-            "command": "workbench.action.toggleMaximizedPanel",
-            "key": "alt+enter",
-            "when": "inTypeTipTerminal"
-        },
-        {
-            "command": "vibecoding.openChatSite",
-            "key": "ctrl+alt+i",
-            "when": "editorTextFocus"
-        }
-    ],
-    
+    {
+      "command": "workbench.action.toggleMaximizedPanel",
+      "key": "alt+enter",
+      "when": "inTypeTipTerminal"
+    },
+    {
+      "command": "vibecoding.openChatSite",
+      "key": "ctrl+alt+i",
+      "when": "editorTextFocus"
+    }
+  ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -164,7 +184,8 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.19",
-    "@types/vscode": "^1.120.0",
+    "@types/vscode": "^1.121.0",
+    "@types/ws": "^8.18.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.3",

@@ -1,13 +1,14 @@
 /**
  * @fileoverview Главная точка входа расширения VS Code (Extension Lifecycle).
  * Управляет активацией, инициализирует статус-бар с механикой минимализма и запускает PTY.
- * * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation; xepctapk (ц) //™
+ * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation; xepctapk (ц) //™
  */
 
 import * as vscode from 'vscode';
 import { TypeTipTerminal } from './engine/terminal';
-import { openVibeGameTab } from './view/renderer'; // Импортируем наш новый файл
+import { openVibeGameTab } from './view/renderer';
 import { openVibeChatWebview } from './view/chat_panel';
+import { SaveTriggerManager } from "./events/save_trigger";
 
 // Глобальная ссылка на единственный экземпляр терминала в рамках сессии VS Code
 let activeTerminalInstance: vscode.Terminal | null = null;
@@ -16,10 +17,12 @@ let activeTerminalInstance: vscode.Terminal | null = null;
 let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext): void {
-  console.log('TypeTip Studio успешно успешно активировано АИ Crew!');
+  console.log("[Typetip]: Запуск протоколов TJMIWGVCEC...");
 
   // 1. РЕГИСТРАЦИЯ КОМАНДЫ ЗАПУСКА (ОБЕСПЕЧИВАЕТ SINGLE INSTANCE)
   const startCommand = vscode.commands.registerCommand('typetip.start', async () => {
+    vscode.window.showInformationMessage("[DDT TIP]: Главный модуль активирован!");
+    
     // Если экземпляр уже существует, проверяем, не закрыл ли его пользователь
     if (activeTerminalInstance) {
       try {
@@ -72,7 +75,6 @@ export function activate(context: vscode.ExtensionContext): void {
   // 2. СЛУШАТЕЛЬ УНИЧТОЖЕНИЯ ТЕРМИНАЛА (ДЛЯ СБРОСА ССЫЛКИ)
   const onTerminalClose = vscode.window.onDidCloseTerminal((closedTerminal) => {
     if (activeTerminalInstance && closedTerminal === activeTerminalInstance) {
-      // Если юзер грохнул нашу вкладку, зануляем трекер, позволяя создать её снова при следующем клике
       activeTerminalInstance = null;
       console.log('Сессия TypeTip Studio уничтожена пользователем. Ссылка сброшена.');
     }
@@ -80,11 +82,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(startCommand, onTerminalClose);
 
-
-  // 2. ИНИЦИАЛИЗАЦИЯ СТАТУС-БАРА
-  // Размещаем кнопку в левой части статус-бара с приоритетом 100 (чтобы не прыгала)
+  // 3. ИНИЦИАЛИЗАЦИЯ СТАТУС-БАРА
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  statusBarItem.command = 'typetip.start'; // Привязываем команду запуска к клику
+  statusBarItem.command = 'typetip.start';
   statusBarItem.tooltip = 'Запустить интерактивную кодинг-студию TypeTip';
   
   context.subscriptions.push(statusBarItem);
@@ -93,45 +93,22 @@ export function activate(context: vscode.ExtensionContext): void {
   updateStatusBar(context);
   statusBarItem.show();
 
-
-
-
-
-// Регистрируем команду запуска нашего приключения
-    let disposable = vscode.commands.registerCommand('typetip.startVibeGameOne', async () => {
-        // Вызываем функцию открытия вкладки, которую мы только что написали
+  // 4. РЕГИСТРАЦИЯ КОМАНДЫ GAME-ИНТЕРФЕЙСА
+  const vibeGameCommand = vscode.commands.registerCommand('typetip.startVibeGameOne', async () => {
         await openVibeGameTab();
     });
+  context.subscriptions.push(vibeGameCommand);
 
-    context.subscriptions.push(disposable);
-
-
-// Регистрируем команду вызова живой веб-вкладки
-    let chatCommand = vscode.commands.registerCommand('vibecoding.openChatSite', () => {
+  // 5. РЕГИСТРАЦИЯ КОМАНДЫ ЖИВОГО ЧАТА (WEBVIEW)
+  const chatCommand = vscode.commands.registerCommand('vibecoding.openChatSite', () => {
         openVibeChatWebview(context);
     });
-
     context.subscriptions.push(chatCommand);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  // 6. ЗАПУСК ПЕРЕХВАТЧИКА СОХРАНЕНИЙ (ОДИН КОРРЕКТНЫЙ ВЫЗОВ)
+    SaveTriggerManager.register(context);
+    console.log("[Typetip]: Автоматический перехват сохранения успешно запущен.");
+  console.log("[Typetip]: Все системы успешно зарегистрированы в рантайме.");
 }
 
 /**
@@ -147,11 +124,9 @@ function updateStatusBar(context: vscode.ExtensionContext): void {
     : `$(keyboard) VibeType`;
 }
 
-
-
-
-
-
+/**
+ * Вызывается автоматически при выгрузке расширения.
+ */
 export function deactivate(): void {
-  // Ресурсы статус-бара автоматически очистятся через context.subscriptions
+  console.log("[Typetip]: Модули выгружены из памяти.");
 }
