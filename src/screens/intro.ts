@@ -1,203 +1,46 @@
 /**
- * @fileoverview Адаптивный экран Интро Warp Vibe Engine (V8.2 - Matrix Edition).
- * Автоматический выбор логотипа под размер экрана, сквозной абсолютный блик,
- * честный выделяемый промпт и термодинамический блендинг логотипа с огнём.
- * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation //™
+ * @fileoverview Высокопроизводительный экран Интро в стиле полноэкранного CyberHUD.
+ * Адаптивно растягивает рамки, боковые панели и перекрестия под размер окна.
+ * 符合 Google TypeScript СТИЛЬ ПРАВИЛ / ПОСТРОЧНОЕ КОММЕНТИРОВАНИЕ
+ * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation; xepctapk (ц) //™
  */
 
 import { IScreen, IScreenContext } from '../engine/interfaces';
 import { AppRouter } from '../engine/router';
 import { ANSI_ASSETS } from './assets/assets';
 
-interface WarpStar {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  char: string;
-  brightness: number;
-  isTwinkling: boolean;
-  twinklePhase: number;
-}
-
 export class IntroScreen implements IScreen {
   private ctx!: IScreenContext;
-  private ticks = 0;
+  private animationTicks = 0;
   private internalLoopTimer: any = null;
-  private warpStars: WarpStar[] = [];
   
+  /** Переиспользуемый плоский буфер для исключения нагрузки на Garbage Collector */
   private matrix: string[][] = [];
-  private fireBuffer: number[][] = [];
-  private logoMask: boolean[][] = [];
 
   constructor(private router: AppRouter) {}
 
+  // === [БЛОК 1: ИНИЦИАЛИЗАЦИЯ И ЖИЗНЕННЫЙ ЦИКЛ] ===
   public init(ctx: IScreenContext): void {
     this.ctx = ctx;
-    this.ticks = 0;
-    this.warpStars = [];
-    this.matrix = [];
-    this.fireBuffer = [];
+    this.animationTicks = 0;
 
     if (this.internalLoopTimer) {
       clearInterval(this.internalLoopTimer);
     }
 
-    const w = this.ctx.terminalWidth || 120;
-    const h = this.ctx.terminalHeight || 30;
-    
-    this.initWarpField(w, h);
-    this.initFireBuffer(w, h);
-    this.generateCollisionMask(w, h);
-
+    // Стабильные 30 FPS. Нагрузка минимальна.
     this.internalLoopTimer = setInterval(() => {
-      this.ticks++;
-      this.updateWarpPhysics();
-      this.updateFireSimulation(w, h);
-      
+      this.animationTicks++;
       if (this.ctx?.writeEmitter) {
         this.ctx.writeEmitter.fire(this.render());
       }
     }, 33);
   }
 
-  // Динамический выбор ассета логотипа на основе ширины терминала (< 105 символов — компакт)
-  private getActiveLogo(): string[] {
-    const w = this.ctx.terminalWidth || 120;
-    return w < 105 ? ANSI_ASSETS.DOT_TERMINATOR_COMPACT : ANSI_ASSETS.DOT_TERMINATOR_WIDE;
-  }
-
-  private initWarpField(w: number, h: number): void {
-    const baseDensity = 0.014; 
-    const starCount = Math.max(40, Math.min(240, Math.floor(w * h * baseDensity)));
-    const shapes = ['·', '°', 'o'];
-    
-    this.warpStars = [];
-    for (let i = 0; i < starCount; i++) {
-      const isTwinkleTarget = (i % 12 === 0);
-      const bright = 0.35 + Math.random() * 0.55;
-      const direction = Math.random() > 0.5 ? 1 : -1;
-      
-      this.warpStars.push({
-        x: Math.random() * w,
-        y: 2 + Math.random() * (h - 4), 
-        vx: (0.25 + Math.random() * 0.35) * direction,   
-        vy: (Math.random() - 0.5) * 0.02,        
-        char: shapes[Math.floor(Math.random() * shapes.length)],
-        brightness: bright,
-        isTwinkling: isTwinkleTarget,
-        twinklePhase: Math.random() * Math.PI * 2
-      });
-    }
-  }
-
-  private initFireBuffer(w: number, h: number): void {
-    this.fireBuffer = Array.from({ length: h + 3 }, () => Array(w).fill(0));
-  }
-
-  private generateCollisionMask(w: number, h: number): void {
-    this.logoMask = Array.from({ length: h }, () => Array(w).fill(false));
-    
-    const activeLogo = this.getActiveLogo();
-    const termWidth = activeLogo[0].length;
-    const termPadding = Math.max(0, Math.floor((w - termWidth) / 2));
-    const paddingTop = Math.max(2, Math.floor((h - 15) / 2)) + 1;
-
-    activeLogo.forEach((line, idx) => {
-      const targetY = paddingTop + idx;
-      if (targetY < h) {
-        for (let x = 0; x < line.length; x++) {
-          if (line[x] !== ' ' && (termPadding + x) < w) {
-            this.logoMask[targetY][termPadding + x] = true;
-          }
-        }
-      }
-    });
-  }
-
-  private updateWarpPhysics(): void {
-    const w = this.ctx.terminalWidth || 120;
-    const h = this.ctx.terminalHeight || 30;
-    
-    this.warpStars.forEach(star => {
-      if (star.isTwinkling) {
-        star.twinklePhase += 0.05;
-        star.brightness = 0.3 + (Math.sin(star.twinklePhase) * 0.55);
-      }
-
-      star.x += star.vx;
-      star.y += star.vy;
-
-      const ix = Math.floor(star.x);
-      const iy = Math.floor(star.y);
-
-      if (iy >= 1 && iy < h && ix >= 0 && ix < w && star.brightness > 0.6) {
-        if (this.logoMask[iy]?.[ix]) {
-          star.vx = -star.vx;
-          star.x += star.vx;
-        }
-      }
-
-      if (star.x > w + 1 || star.x < -2 || star.y > h - 1 || star.y < 1) {
-        star.x = star.vx > 0 ? 0 : w - 1;
-        star.y = 2 + Math.random() * (h - 4);
-      }
-    });
-  }
-
-  private updateFireSimulation(w: number, h: number): void {
-    if (this.fireBuffer.length === 0 || this.fireBuffer[0]?.length !== w) {
-      this.initFireBuffer(w, h);
-    }
-
-    const paddingTop = Math.max(2, Math.floor((h - 15) / 2)) + 1;
-    const fireBaseY = paddingTop + 4; 
-    if (fireBaseY >= h || !this.fireBuffer[fireBaseY]) return;
-
-    const heightScale = Math.min(2.2, Math.max(1.0, h / 28)); 
-    const baseCooling = Math.max(3.9, 4.35 - (heightScale * 0.12));
-
-    for (let x = 0; x < w; x++) {
-      if (Math.random() > 0.55) {
-        this.fireBuffer[fireBaseY][x] = Math.floor(135 + Math.random() * 115);
-      } else {
-        this.fireBuffer[fireBaseY][x] = 0;
-      }
-    }
-
-    for (let y = 1; y < fireBaseY; y++) {
-      if (y + 2 >= this.fireBuffer.length || !this.fireBuffer[y + 1]) continue;
-      
-      // Полное превентивное гашение дыма на верхних строках ради чистоты промпта
-      if (y < 4) {
-        for (let x = 0; x < w; x++) this.fireBuffer[y][x] = 0;
-        continue;
-      }
-
-      let topDamping = 1.0;
-      if (y < 7) {
-        topDamping = 1.2 + (7 - y) * 0.4; 
-      }
-
-      for (let x = 1; x < w - 1; x++) {
-        const h1 = this.fireBuffer[y + 1][x - 1] || 0;
-        const h2 = this.fireBuffer[y + 1][x] || 0;
-        const h3 = this.fireBuffer[y + 1][x + 1] || 0;
-        const h4 = this.fireBuffer[y + 2][x] || 0;
-
-        let avg = (h1 + h2 + h3 + h4) / (baseCooling * topDamping);
-        this.fireBuffer[y][x] = avg > 2.2 ? avg : 0;
-      }
-    }
-  }
-
   public resize(width: number, height: number): void {
     this.ctx.terminalWidth = width;
     this.ctx.terminalHeight = height;
-    this.matrix = [];
-    this.initWarpField(width, height);
-    this.initFireBuffer(width, height);
-    this.generateCollisionMask(width, height);
+    this.matrix = []; // Сброс сетки при ресайзе
   }
 
   public dispose(): void {
@@ -208,178 +51,207 @@ export class IntroScreen implements IScreen {
   }
 
   public handleInput(data: string): void {
-    this.dispose(); // Безопасно тушим приватный буфер графики
-    this.router.navigateTo('KEYBOARD');
+    this.dispose();
+    this.router.navigateTo('HUB');
   }
 
-  private getTrueColor(r: number, g: number, b: number): string {
-    return `\x1b[38;2;${Math.floor(r)};${Math.floor(g)};${Math.floor(b)}m`;
-  }
-
+  // === [БЛОК 2: ЯДРО ГЕНЕРАЦИИ МАТРИЦЫ КАДРА] ===
   public render(): string {
     const w = this.ctx.terminalWidth || 120;
     const h = this.ctx.terminalHeight || 30;
 
+    // Спецификация палитры ANSI-модификаторов
     const RESET = '\x1b[0m';
     const BOLD = '\x1b[1m';
-    const GREEN = '\x1b[32m'; 
-    const WHITE = '\x1b[37m'; 
-    const BRIGHT_WHITE = '\x1b[97m';
-    const RED_BOLD = '\x1b[1;31m'; 
+    const DIM = '\x1b[2m';
+    const CYAN = '\x1b[36m';
     const BRIGHT_CYAN = '\x1b[96m';
+    const GREEN = '\x1b[32m';
+    const BRIGHT_GREEN = '\x1b[92m';
+    const YELLOW = '\x1b[33m';
+    const DARK_GRAY = '\x1b[90m';
+    const WHITE = '\x1b[37m';
 
+    // Аллокация двумерной координатной сетки
     if (this.matrix.length !== h || this.matrix[0]?.length !== w) {
       this.matrix = Array.from({ length: h }, () => Array(w).fill(' '));
     } else {
-      for (let y = 0; y < h; y++) this.matrix[y].fill(' ');
-    }
-
-    // 1. СЛОЙ ЗВЁЗДНОГО НЕБА
-    this.warpStars.forEach(star => {
-      const sx = Math.floor(star.x);
-      const sy = Math.floor(star.y);
-      if (sx >= 0 && sx < w && sy >= 1 && sy < h) {
-        const grayVal = Math.floor(Math.max(40, Math.min(255, star.brightness * 255)));
-        this.matrix[sy][sx] = this.getTrueColor(grayVal, grayVal, grayVal) + star.char + RESET;
-      }
-    });
-
-    // 2. СЛОЙ ТЕРМОДИНАМИЧЕСКОГО ОГНЯ
-    if (this.fireBuffer.length > 0) {
-      for (let y = 1; y < h; y++) { 
-        if (y >= this.fireBuffer.length) break;
-        for (let x = 0; x < w; x++) {
-          const heat = this.fireBuffer[y][x];
-          if (heat > 165) {
-            this.matrix[y][x] = this.getTrueColor(245, Math.min(240, heat * 1.02), 40) + '▓' + RESET;
-          } else if (heat > 98) {
-            this.matrix[y][x] = this.getTrueColor(heat + 80, 45, 10) + '▒' + RESET;
-          } else if (heat > 38) {
-            this.matrix[y][x] = this.getTrueColor(heat + 25, 5, 0) + '░' + RESET;
-          }
-        }
+      for (let y = 0; y < h; y++) {
+        this.matrix[y].fill(' ');
       }
     }
 
-    const paddingTop = Math.max(2, Math.floor((h - 15) / 2)) + 1;
-    const termLogoYStart = paddingTop;
-    const termLogoYEnd = paddingTop + 5;
+    // 1. Отрисовка внешней защитной рамки CyberHUD
+    const edgeColor = DIM + CYAN;
+    for (let x = 0; x < w; x++) {
+      this.matrix[0][x] = edgeColor + '═';
+      this.matrix[h - 1][x] = edgeColor + '═';
+    }
+    for (let y = 0; y < h; y++) {
+      this.matrix[y][0] = edgeColor + '║';
+      this.matrix[y][w - 1] = edgeColor + '║';
+    }
+    this.matrix[0][0] = edgeColor + '╔';
+    this.matrix[0][w - 1] = edgeColor + '╗';
+    this.matrix[h - 1][0] = edgeColor + '╚';
+    this.matrix[h - 1][w - 1] = edgeColor + '╝';
 
-    const geminiY = termLogoYEnd + 1; 
-    const signatureY = geminiY + 1;
-    const pressKeyY = h - 6; 
+    // 2. Интеграция боковых приборных панелей телеметрии
+    const panelX = 22; 
+    for (let y = 1; y < h - 1; y++) {
+      this.matrix[y][panelX] = DIM + DARK_GRAY + '│';
+      this.matrix[y][w - panelX - 1] = DIM + DARK_GRAY + '│';
+    }
 
-    // ЕДИНАЯ ось времени блика по координате X
-    const waveSize = 14;
-    const currentGlobalX = (this.ticks * 0.75) % (w + waveSize * 2) - waveSize;
+    const midY = Math.floor(h / 2);
+    if (midY < h) {
+      this.matrix[midY][2] = BRIGHT_CYAN + '➔' + RESET;
+      this.matrix[midY][panelX] = DIM + CYAN + '┼';
+      this.matrix[midY][w - panelX - 1] = DIM + CYAN + '┼';
+      this.matrix[midY][w - 3] = BRIGHT_CYAN + '◀' + RESET;
+    }
 
-    // 3. ОТРИСОВКА ДИНАМИЧЕСКИ ВЫБРАННОГО ЛОГОТИПА
-    const activeLogo = this.getActiveLogo();
-    const termWidth = activeLogo[0].length;
-    const termPadding = Math.max(0, Math.floor((w - termWidth) / 2));
-    
-    activeLogo.forEach((line, idx) => {
-      const targetY = termLogoYStart + idx;
-      if (targetY > 0 && targetY < h) {
+    // 3. Вывод Логотипов ТайпТип Студио
+    const contentHeight = 17;
+    const paddingTop = Math.max(1, Math.floor((h - contentHeight) / 2) - 1);
+
+    // Вывод блока TERMИNAL (ТайпТип)
+    const termWidth = ANSI_ASSETS.DOT_TERMINAL[0].length;
+    const termPaddingLeft = Math.max(panelX + 2, Math.floor((w - termWidth) / 2));
+    ANSI_ASSETS.DOT_TERMINAL.forEach((line, idx) => {
+      const targetY = paddingTop + idx;
+      if (targetY < h) {
         for (let x = 0; x < line.length; x++) {
-          const matrixX = termPadding + x;
-          if (line[x] !== ' ' && matrixX < w) {
-            const underlyingHeat = this.fireBuffer[targetY]?.[matrixX] || 0;
-            
-            if (underlyingHeat > 80) {
-              // Раскаление символов от огня (эффект пламени внутри букв)
-              this.matrix[targetY][matrixX] = this.getTrueColor(255, 210 + underlyingHeat * 0.15, 140) + line[x] + RESET;
-            } else {
-              // Автономный плазменный цикл переливов
-              const plasmaR = Math.floor(Math.sin((x + this.ticks) * 0.1) * 20 + 40);
-              const plasmaG = Math.floor(Math.sin((x - this.ticks) * 0.12) * 25 + 110);
-              const plasmaB = Math.floor(Math.sin((this.ticks) * 0.07) * 30 + 220);
-              this.matrix[targetY][matrixX] = this.getTrueColor(plasmaR, plasmaG, plasmaB) + line[x] + RESET;
-            }
+          if (line[x] !== ' ' && (termPaddingLeft + x) < w - panelX) {
+            this.matrix[targetY][termPaddingLeft + x] = BRIGHT_CYAN + line[x];
           }
         }
       }
     });
 
-    // 4. СИНХРОНИЗИРОВАННЫЕ СКВОЗНЫЕ БЛИКИ НА ПОДПИСЯХ
-    const geminiTxt = ANSI_ASSETS.GEMINI_PUNCH;
-    const signatureTxt = ANSI_ASSETS.SIGNATURE;
-    const pressKeyTxt = ANSI_ASSETS.PRESS_ANY_KEY;
-    
-    const textPaddingLeft = Math.max(0, Math.floor((w - geminiTxt.length) / 2));
-    const pressKeyX = w - pressKeyTxt.length - 2;
-
-    if (geminiY < h && geminiY > 0) {
-      for (let i = 0; i < geminiTxt.length; i++) {
-        const targetX = textPaddingLeft + i;
-        if (targetX < w) {
-          if (targetX >= currentGlobalX && targetX < currentGlobalX + waveSize) {
-            this.matrix[geminiY][targetX] = BOLD + BRIGHT_WHITE + geminiTxt[i] + RESET;
-          } else {
-            this.matrix[geminiY][targetX] = GREEN + geminiTxt[i] + RESET;
+    // Вывод блока RAEDY (Студио)
+    const readyWidth = ANSI_ASSETS.DOT_READY[0].length;
+    const readyPaddingLeft = Math.max(panelX + 2, Math.floor((w - readyWidth) / 2));
+    ANSI_ASSETS.DOT_READY.forEach((line, idx) => {
+      const targetY = paddingTop + 7 + idx;
+      if (targetY < h) {
+        for (let x = 0; x < line.length; x++) {
+          if (line[x] !== ' ' && (readyPaddingLeft + x) < w - panelX) {
+            this.matrix[targetY][readyPaddingLeft + x] = CYAN + line[x];
           }
         }
       }
-    }
+    });
 
-    if (signatureY < h && signatureY > 0) {
-      for (let i = 0; i < signatureTxt.length; i++) {
-        const targetX = textPaddingLeft + i;
-        if (targetX < w) {
-          if (targetX >= currentGlobalX && targetX < currentGlobalX + waveSize) {
-            this.matrix[signatureY][targetX] = BOLD + BRIGHT_WHITE + signatureTxt[i] + RESET;
-          } else {
-            this.matrix[signatureY][targetX] = WHITE + signatureTxt[i] + RESET;
-          }
-        }
+    // 4. Центральный бокс статусов ЖМИНЯ
+    const boxY = paddingTop + 15;
+    const boxWidth = 76;
+    const boxPaddingLeft = Math.max(panelX + 2, Math.floor((w - boxWidth) / 2));
+
+    const isVisible = (this.animationTicks % 30 < 15);
+    const dynamicGreen = isVisible ? BRIGHT_GREEN : DIM + GREEN;
+    const dynamicYellow = isVisible ? YELLOW : DIM + YELLOW;
+
+    if (boxY + 2 < h - 1) {
+      const statusTextPlain = "  SYSTEM: ACTIVE     PTY: MOUNTED     VIBE: MAXIMUM     CODE: BY ЖМИНЯ  ";
+      for (let i = 0; i < boxWidth; i++) {
+        this.matrix[boxY][boxPaddingLeft + i] = DIM + GREEN + '═';
+        this.matrix[boxY + 2][boxPaddingLeft + i] = DIM + GREEN + '═';
+        this.matrix[boxY + 1][boxPaddingLeft + i] = DIM + GREEN + statusTextPlain[i];
+      }
+      this.matrix[boxY + 1][boxPaddingLeft] = DIM + GREEN + '║';
+      this.matrix[boxY + 1][boxPaddingLeft + boxWidth - 1] = DIM + GREEN + '║';
+
+      this.matrix[boxY + 1][boxPaddingLeft + 2] = dynamicGreen + '●';
+      this.matrix[boxY + 1][boxPaddingLeft + 21] = dynamicGreen + '●';
+      this.matrix[boxY + 1][boxPaddingLeft + 40] = dynamicGreen + '●';
+      this.matrix[boxY + 1][boxPaddingLeft + 59] = dynamicYellow + '●';
+      
+      for (let j = 0; j < 8; j++) {
+        this.matrix[boxY + 1][boxPaddingLeft + 66 + j] = YELLOW + BOLD + "BY ЖМИНЯ"[j];
       }
     }
 
-    if (pressKeyY > 0 && pressKeyY < h && pressKeyX >= 0) {
-      for (let i = 0; i < pressKeyTxt.length; i++) {
-        const targetX = pressKeyX + i;
-        if (targetX < w) {
-          if (targetX >= currentGlobalX && targetX < currentGlobalX + waveSize) {
-            this.matrix[pressKeyY][targetX] = BOLD + BRIGHT_WHITE + pressKeyTxt[i] + RESET;
-          } else {
-            this.matrix[pressKeyY][targetX] = RED_BOLD + pressKeyTxt[i] + RESET;
-          }
-        }
+    // 5. Изолированный вызов боковых панелей телеметрии (Защита диффа Git)
+    this.injectSidePanels(h, w, panelX);
+
+    // 6. Текст кнопки Press Any Key
+    const pressTxt = ANSI_ASSETS.PRESS_ANY_KEY;
+    const pressPaddingLeft = Math.max(panelX + 2, Math.floor((w - pressTxt.length) / 2));
+    const pressY = h - 3; 
+    if (pressY > boxY + 2 && pressY < h - 1) {
+      for (let i = 0; i < pressTxt.length; i++) {
+        this.matrix[pressY][pressPaddingLeft + i] = DIM + CYAN + pressTxt[i];
       }
     }
 
-    // 5. НИЖНЯЯ ТЕЛЕМЕТРИЯ ШИНЫ СИСТЕМЫ
-    const busY = h - 2; 
-    const sysLoad = (Math.sin(this.ticks * 0.05) * 1.1 + 14.1).toFixed(1); 
-    const telemetryString = `[ V8.2 BUS: ACTIVE ]   CORE.LOAD: ${sysLoad}%`;
-    
-    if (busY < h && busY > 0) {
-      for (let i = 0; i < telemetryString.length; i++) {
-        if (i + 2 < w) {
-          this.matrix[busY][i + 2] = BRIGHT_CYAN + telemetryString[i] + RESET;
-        }
-      }
+    // === [БЛОК 3: ФИНАЛЬНАЯ СБОРКА ПОТОКА И ОПУСК ПРОМПТА В САМЫЙ НИЗ] ===
+    // Чистим экран и сбрасываем курсор в левый верхний угол
+    let result = `\x1b[?7l\x1b[H\x1b[?25h`;
+
+    // Выводим строки с 0 по предпоследнюю (h-2) в чистом HUD режиме
+    for (let y = 0; y < h - 1; y++) {
+      result += this.matrix[y].map(cell => cell.includes('\x1b') ? cell : cell + RESET).join('') + '\r\n';
     }
 
-    // 6. ИЗОЛЯЦИЯ И СБОРКА СТРОК (Защита выделения промпта от глитчей)
-    const linesBuffer: string[] = [];
+    // ПОСЛЕДНЯЯ СТРОКА (h - 1): Сюда сажаем наш промпт, чтобы он лежал на дне окна!
+    const promptStr = `${DIM}${GREEN}root@typetip:/home# ${WHITE}useradd -m typetip${RESET}`;
+    const promptPlainLen = 37; // Чистая физическая длина текста промпта
 
-    // Строка 0 — чистый системный промпт, чтобы буквы никуда не уплывали и честно выделялись мышкой
-    const promptPlain = "root@typetip:/home# useradd -m typetip";
-    const padSpaces = ' '.repeat(Math.max(0, w - promptPlain.length));
-    linesBuffer.push(`\x1b[0;37mroot@typetip:/home# \x1b[0;37museradd -m typetip${RESET}` + padSpaces);
+    // Склеиваем промпт и правую часть нижней рамки
+    result += promptStr + this.matrix[h - 1].slice(promptPlainLen).map(cell => cell.includes('\x1b') ? cell : cell + RESET).join('') + '\r\n';
 
-    // Подтягиваем остальные обработанные строки матрицы
-    for (let y = 1; y < h; y++) {
-      linesBuffer.push(this.matrix[y].join(''));
-    }
-
-    // Сборка кадра. Запрещаем автоперенос строки (?7l) и сбрасываем курсор в левый верхний угол (H)
-    let result = `\x1b[?7l\x1b[H\x1b[?25h` + linesBuffer.join('\r\n');
-
-    // Возвращаем курсор в конец промпта, чтобы он аутентично мигал там
-    result += `\x1b[1;38H`;
+    // Аппаратное смещение курсора в конец промпта на последней строке
+    result += `\x1b[${h};${promptPlainLen + 1}H`;
 
     return result;
+  }
+
+  /**
+   * Изолированный метод вывода боковых логов.
+   * Спасает Git от ложных срабатываний при обновлении текстовых полей.
+   */
+  private injectSidePanels(h: number, w: number, panelX: number): void {
+    const GREEN = '\x1b[32m'; const BOLD = '\x1b[1m'; const DIM = '\x1b[2m'; const BRIGHT_GREEN = '\x1b[92m';
+    const YELLOW = '\x1b[33m'; const BRIGHT_CYAN = '\x1b[96m'; const CYAN = '\x1b[36m'; const BRIGHT_WHITE = '\x1b[97m';
+    
+    // Левые логи
+    if (panelX < w) {
+      const loadVal = (Math.sin(this.animationTicks * 0.05) * 4 + 12).toFixed(2);
+      const logs = [
+        `${GREEN}${BOLD}📡 TELEMETRY`, `${DIM}${GREEN}────────────`,
+        `${GREEN}CORE: ${BRIGHT_GREEN}ONLINE`, `${GREEN}LOAD: ${YELLOW}${loadVal}%`,
+        `${GREEN}BUFF: ${BRIGHT_CYAN}STABLE`, ` `,
+        `${DIM}${CYAN}🛠️ SUBSYSTEMS`, `${DIM}${CYAN}────────────`,
+        `${CYAN}PTY:  ${GREEN}OK`, `${CYAN}V8:   ${GREEN}OK`, `${CYAN}XTERM:${GREEN}OK`
+      ];
+      logs.forEach((line, idx) => {
+        if (idx + 2 < h - 1) {
+          const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '');
+          for (let i = 0; i < cleanLine.length; i++) {
+            this.matrix[idx + 2][2 + i] = line;
+            break;
+          }
+        }
+      });
+    }
+
+    // Правые логи
+    if (w - panelX > 0) {
+      const hzGraph = [' ▄', ' ▆', ' █', ' ▅', ' ▃', ' ▄', ' █', ' ▇'][(this.animationTicks + 1) % 8];
+      const rights = [
+        `${CYAN}${BOLD}🧭 NAVIGATION`, `${DIM}${CYAN}────────────`,
+        `${CYAN}HDG:  ${BRIGHT_CYAN}042.89°`, `${CYAN}YEAR: ${BRIGHT_WHITE}2026.V3`,
+        `${CYAN}FPS:  ${BRIGHT_GREEN}30.3 HZ`, ` `,
+        `${DIM}${GREEN}📈 ENGINE BUS`, `${DIM}${GREEN}────────────`,
+        `${GREEN}WAVE: ${BRIGHT_GREEN}${hzGraph}${hzGraph}${hzGraph}`,
+        `${GREEN}VIBE: ${BRIGHT_GREEN}MAXIMUM`, `${GREEN}STAT: ${GREEN}ACTIVE`
+      ];
+      rights.forEach((line, idx) => {
+        if (idx + 2 < h - 1) {
+          this.matrix[idx + 2][w - panelX + 1] = line;
+        }
+      });
+    }
   }
 }

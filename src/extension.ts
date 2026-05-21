@@ -6,6 +6,8 @@
 
 import * as vscode from 'vscode';
 import { TypeTipTerminal } from './engine/terminal';
+import { openVibeGameTab } from './view/renderer'; // Импортируем наш новый файл
+import { openVibeChatWebview } from './view/chat_panel';
 
 // Глобальная ссылка на единственный экземпляр терминала в рамках сессии VS Code
 let activeTerminalInstance: vscode.Terminal | null = null;
@@ -14,7 +16,7 @@ let activeTerminalInstance: vscode.Terminal | null = null;
 let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext): void {
-  console.log('TypeTip Studio успешно активирован и готов к вайб-кодингу!');
+  console.log('TypeTip Studio успешно успешно активировано АИ Crew!');
 
   // 1. РЕГИСТРАЦИЯ КОМАНДЫ ЗАПУСКА (ОБЕСПЕЧИВАЕТ SINGLE INSTANCE)
   const startCommand = vscode.commands.registerCommand('typetip.start', async () => {
@@ -90,6 +92,46 @@ export function activate(context: vscode.ExtensionContext): void {
   // Отрисовываем актуальное состояние кнопки при старте VS Code
   updateStatusBar(context);
   statusBarItem.show();
+
+
+
+
+
+// Регистрируем команду запуска нашего приключения
+    let disposable = vscode.commands.registerCommand('typetip.startVibeGameOne', async () => {
+        // Вызываем функцию открытия вкладки, которую мы только что написали
+        await openVibeGameTab();
+    });
+
+    context.subscriptions.push(disposable);
+
+
+// Регистрируем команду вызова живой веб-вкладки
+    let chatCommand = vscode.commands.registerCommand('vibecoding.openChatSite', () => {
+        openVibeChatWebview(context);
+    });
+
+    context.subscriptions.push(chatCommand);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 /**
@@ -104,6 +146,11 @@ function updateStatusBar(context: vscode.ExtensionContext): void {
     ? `$(keyboard)` 
     : `$(keyboard) VibeType`;
 }
+
+
+
+
+
 
 export function deactivate(): void {
   // Ресурсы статус-бара автоматически очистятся через context.subscriptions

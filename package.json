@@ -20,6 +20,21 @@
               "default": "Anonymous_Wolf",
               "description": "Твой позывной в клановой таблице рекордов."
             },
+                        "typetip.aiProvider": {
+                "type": "string",
+                "default": "gemini",
+                "enum": ["gemini", "yandex"],
+                "enumDescriptions": [
+                    "Использовать Google Gemini API Pro",
+                    "Использовать Яндекс Алису (YandexGPT Cloud)"
+                ],
+                "description": "Выбери, какой искусственный интеллект будет отвечать тебе во вкладке чата."
+            },
+            "typetip.yandexFolderId": {
+                "type": "string",
+                "default": "",
+                "description": "Идентификатор каталога (Folder ID) из Yandex Cloud (нужен только для Алисы)."
+            },
             "typetip.githubToken": {
               "type": "string",
               "default": "",
@@ -113,7 +128,16 @@
       {
         "command": "typetip.resetStats",
             "title": "TypeTip: Reset Stats"
+      },
+      {
+        "command": "typetip.startVibeGameOne",
+            "title": "TypeTip: - Как дела, Брад?"
+      },
+      {
+        "command": "vibecoding.openChatSite",
+            "title": "Технолоожи: 'оно само делает'"
       }
+
     ]
   },
   "keybindings": [
@@ -121,6 +145,11 @@
             "command": "workbench.action.toggleMaximizedPanel",
             "key": "alt+enter",
             "when": "inTypeTipTerminal"
+        },
+        {
+            "command": "vibecoding.openChatSite",
+            "key": "ctrl+alt+i",
+            "when": "editorTextFocus"
         }
     ],
     
