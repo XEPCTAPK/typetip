@@ -16,6 +16,7 @@ export class SaveTriggerManager {
 
         const disposable = vscode.workspace.onDidSaveTextDocument(() => {
             if (!this.isGeminiTerminalActive()) { return; }
+            console.log("[ws TIP -> ТРИГГЕР]: Зафиксировано сохранение файла. Запускаем пайплайн.");
             this.executePromptPipeline();
         });
         context.subscriptions.push(disposable);
@@ -59,6 +60,7 @@ export class SaveTriggerManager {
         // ПОДМЕШИВАЕМ ИНДИКАТОР:
         const status = vscode.window.setStatusBarMessage("$(radio-tower) Жминя подключается к эфиру...");
 
+        console.log("[11mc TIP -> СЕТЬ]: Инициируем подключение вебсокета по триггеру.");
         await client.connect(
             (chunk: string) => {
                 this.injectStreamToEditor(editor, chunk);
@@ -73,6 +75,7 @@ export class SaveTriggerManager {
 
         setTimeout(() => {
             client.sendPrompt(prompt);
+            console.log("[11mc TIP -> СЕТЬ]: Промпт отправлен в туннель.");
         }, 1000);
     }
 

@@ -10,6 +10,7 @@ import { openVibeGameTab } from './view/renderer';
 import { openVibeChatWebview } from './view/chat_panel';
 import { SaveTriggerManager } from "./events/save_trigger";
 import { GeminiWSClient } from './api/gemini_ws_client';
+import { LiveEditorConnector } from './core/live_editor_connector';
 
 // Глобальная ссылка на единственный экземпляр терминала в рамках сессии VS Code
 let activeTerminalInstance: vscode.Terminal | null = null;
@@ -17,12 +18,22 @@ let activeTerminalInstance: vscode.Terminal | null = null;
 // Выносим указатель на статус-бар в глобальную область модуля для доступа при обновлении
 let statusBarItem: vscode.StatusBarItem;
 
+let clientInstance: GeminiWSClient | undefined;
+
+// Экспорт функции, которая безопасно вернет клиент
+export function getGeminiClient(): GeminiWSClient {
+    if (!clientInstance) {
+        throw new Error("Жменя еще не проснулась! Клиент не инициализирован.");
+    }
+    return clientInstance;
+  }
+
 export function activate(context: vscode.ExtensionContext): void {
   console.log("[Typetip]: Запуск протоколов TJMIWGVCEC...");
 
   // 1. РЕГИСТРАЦИЯ КОМАНДЫ ЗАПУСКА (ОБЕСПЕЧИВАЕТ SINGLE INSTANCE)
   const startCommand = vscode.commands.registerCommand('typetip.start', async () => {
-    vscode.window.showInformationMessage("[DDT TIP]: Главный модуль активирован!");
+    vscode.window.showInformationMessage("[11mc TIP]: Главный модуль активирован!");
     
     // Если экземпляр уже существует, проверяем, не закрыл ли его пользователь
     if (activeTerminalInstance) {
@@ -97,12 +108,14 @@ export function activate(context: vscode.ExtensionContext): void {
   // 4. РЕГИСТРАЦИЯ КОМАНДЫ GAME-ИНТЕРФЕЙСА
   const vibeGameCommand = vscode.commands.registerCommand('typetip.startVibeGameOne', async () => {
         await openVibeGameTab();
+        console.log("[11mc TIP -> ЮЗЕР]: Открыта вкладка кибер-тира.");
     });
   context.subscriptions.push(vibeGameCommand);
 
   // 5. РЕГИСТРАЦИЯ КОМАНДЫ ЖИВОГО ЧАТА (WEBVIEW)
   const chatCommand = vscode.commands.registerCommand('vibecoding.openChatSite', () => {
         openVibeChatWebview(context);
+        console.log("[11mc TIP -> ЮЗЕР]: Запущен Webview чат Жмини.");
     });
     context.subscriptions.push(chatCommand);
 
@@ -110,6 +123,45 @@ export function activate(context: vscode.ExtensionContext): void {
     SaveTriggerManager.register(context);
     console.log("[Typetip]: Автоматический перехват сохранения успешно запущен.");
   console.log("[Typetip]: Все системы успешно зарегистрированы в рантайме.");
+
+
+
+
+// 1. Вытаскиваем твой ключ из globalState (как в твоем коде)
+    const apiKey = context.globalState.get<string>('geminiApiKey') || ""; 
+    
+    if (apiKey) {
+        // 2. Инициализируем твой родной клиент
+        const geminiClient = new GeminiWSClient(apiKey);
+        
+        // 3. Запускаем наш живой коннектор к вкладкам
+        const liveConnector = new LiveEditorConnector(geminiClient);
+        liveConnector.activate(context);
+    } else {
+        console.log("[Typetip]: Ключ geminiApiKey не найден, Live-режим Жмени ждет авторизации.");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 /**

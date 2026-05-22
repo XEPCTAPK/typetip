@@ -1,5 +1,5 @@
 /**
- * @fileoverview Панель ИИ-чата для TypeTip Studio с изолированной логикой авторизации.
+ * @fileoverview Панель вывода контента для TypeTip Studio //с изолированной логикой авторизации.- эту логику в терминал?
  * Структура оптимизирована для идеального прохождения Git Diff без ложных сдвигов.
  * 符合 Google TypeScript СТИЛЬ ПРАВИЛ // THE "JUST MAKE IT WORK" GROUP
  * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation; xepctapk (ц) //™
@@ -8,6 +8,7 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 import * as url from 'url';
+import { getGeminiClient } from '../extension';
 
 // === [БЛОК 1: КОНСТАНТЫ И СОСТОЯНИЕ] ===
 let uniqueChatPanel: vscode.WebviewPanel | undefined = undefined;
@@ -43,6 +44,15 @@ export async function openVibeChatWebview(context: vscode.ExtensionContext): Pro
     const provider = config.get<string>('aiProvider') || 'gemini';
     const isAuth = !!(await context.secrets.get(`${SECRET_PREFIX}${provider}`));
 
+    // === [ХУК 1]: Если юзер уже авторизован, цепляем вебсокет прямо на старте вебвью
+    if (isAuth && provider === 'gemini') {
+        try {
+            getGeminiClient().initFromSecrets(context.secrets, provider);
+        } catch (e) {
+            console.log("[Typetip WS]: Не удалось запустить авто-сохранение сокета при старте панели.");
+        }
+    }
+
     // Загружаем интерфейс
     uniqueChatPanel.webview.html = getLocalChatHTML(isAuth, provider);
 
@@ -61,6 +71,16 @@ export async function openVibeChatWebview(context: vscode.ExtensionContext): Pro
                 case 'startAuthFlow':
                     // Сигнал с неоновой кнопки: запускаем локальный перехватчик
                     await startSeamlessOAuth(message.provider, context.secrets);
+                    
+                    // === [ХУК 2]: Юзер прожал авторизацию, получил токен. СРАЗУ будим сокет Жмени!
+                    if (message.provider === 'gemini') {
+                        try {
+                            // Даем OAuth-скрипту сотую долю секунды записать секрет, затем дергаем коннект
+                            setTimeout(() => {
+                                getGeminiClient().initFromSecrets(context.secrets, message.provider);
+                            }, 500);
+                        } catch (e) {}
+                    }
                     break;
                     
                 case 'disconnectProvider':
@@ -75,6 +95,22 @@ export async function openVibeChatWebview(context: vscode.ExtensionContext): Pro
                     const currentProvider = vscode.workspace.getConfiguration('typetip').get<string>('aiProvider') || 'gemini';
                     const reply = await handleAiOrchestrator(message.text, currentProvider, context.secrets);
                     uniqueChatPanel?.webview.postMessage({ command: 'agentResponse', text: reply });
+                    console.log("[11mc TIP -> ЧАТ]: Отправка запроса Агенту (REST API).");
+                    break;
+
+                case 'askAgentViaWS':
+                    // Передача пользовательского ввода напрямую в открытый WebSocket канал
+                    try {
+                        const wsClient = getGeminiClient();
+                        wsClient.sendPrompt(message.text);
+                        console.log("[11mc TIP -> WS_ЧАТ]: Промпт успешно выкусан из буфера и отправлен в WebSocket туннель.");
+                    } catch (err: any) {
+                        vscode.window.showErrorMessage(`❌ Ошибка WebSocket туннеля: ${err.message}`);
+                        uniqueChatPanel?.webview.postMessage({ 
+                            command: 'agentResponse', 
+                            text: `<b>[СИСТЕМА]:</b> Ошибка отправки по сокету: ${err.message}` 
+                        });
+                    }
                     break;
             }
         },
@@ -217,6 +253,8 @@ async function finalizeAuthSuccess(
 
     vscode.window.showInformationMessage(`⚡ TypeTip: Связь с ${provider} установлена и проверена.`);
 }
+
+
 // === [БЛОК 4: ОРКЕСТРАТОР СЕТЕВЫХ ЗАПРОСОВ И ИИ-ИНТЕГРАЦИИ] ===
 /**
  * Маршрутизатор запросов к выбранному ИИ провайдеру.
@@ -334,7 +372,10 @@ function getLocalChatHTML(isAuth: boolean, currentProvider: string): string {
                 .select-provider { background: #222; color: #fff; border: 1px solid #39ff14; padding: 10px; margin-bottom: 20px; font-family: inherit; border-radius: 4px; }
                 .input-box { display: flex; gap: 10px; }
                 textarea { flex: 1; background: #222; border: 1px solid #39ff14; color: #fff; padding: 10px; font-family: inherit; border-radius: 4px; resize: none; }
-                button.send-btn { background: #39ff14; color: #000; border: none; padding: 0 25px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+                .btn-group { display: flex; flex-direction: column; gap: 5px; }
+                button.send-btn { background: #39ff14; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 4px; font-family: monospace; }
+                button.ws-btn { background: transparent; color: #36f0f0; border: 1px solid #36f0f0; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 4px; font-family: monospace; transition: all 0.2s; }
+                button.ws-btn:hover { background: #36f0f0; color: #000; box-shadow: 0 0 10px #36f0f0; }
             </style>
         </head>
         <body>
@@ -357,9 +398,12 @@ function getLocalChatHTML(isAuth: boolean, currentProvider: string): string {
                     <div class="msg agent"><b>[Система]:</b> Подключение активно. Касса закрыта, буфер зачищен. Мы в эфире!</div>
                 </div>
                 <div class="input-box">
-                    <textarea id="userInput" rows="2" placeholder="Напиши агенту... (Ctrl+Enter)"></textarea>
+                    <textarea id="userInput" rows="3" placeholder="Напиши агенту... (Ctrl+Enter для REST)"></textarea>
+                    <div class="btn-group">
+                        <button class="ws-btn" onclick="sendWSMessage()">ВЕБСОКЕТ</button>
                     <button class="send-btn" onclick="sendMessage()">ОТПРАВИТЬ</button>
                 </div>
+            </div>
             </div>
 
             <script>
@@ -379,18 +423,38 @@ function getLocalChatHTML(isAuth: boolean, currentProvider: string): string {
                     vscode.postMessage({ command: 'disconnectProvider', provider: providerSelect.value });
                 }
 
-                function sendMessage() {
-                    const text = userInput.value.trim();
-                    if (!text) return;
-
+                function appendUserMessage(text) {
                     const userDiv = document.createElement('div');
                     userDiv.className = 'msg user';
                     userDiv.innerHTML = '<b>[Вы]:</b> ' + text;
                     chatArea.appendChild(userDiv);
                     userInput.value = '';
                     chatArea.scrollTop = chatArea.scrollHeight;
+                }
 
+                function sendMessage() {
+                    const text = userInput.value.trim();
+                    if (!text) return;
+
+                    appendUserMessage(text);
                     vscode.postMessage({ command: 'askAgent', text: text });
+                }
+
+                function sendWSMessage() {
+                    const text = userInput.value.trim();
+                    if (!text) return;
+
+                    // Отрисовываем сообщение в чате с пометкой [WS] для понимания контекста
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'msg user';
+                    userDiv.style.color = '#36f0f0';
+                    userDiv.innerHTML = '<b>[Вы (WS)]:</b> ' + text;
+                    chatArea.appendChild(userDiv);
+                    userInput.value = '';
+                    chatArea.scrollTop = chatArea.scrollHeight;
+
+                    // Шлем сигнал на бэкенд в изолированный кейс askAgentViaWS
+                    vscode.postMessage({ command: 'askAgentViaWS', text: text });
                 }
 
                 window.addEventListener('message', event => {
@@ -410,7 +474,7 @@ function getLocalChatHTML(isAuth: boolean, currentProvider: string): string {
             '[SOURCE]: ' + r.source,
             '[TARGET]: ' + r.target,
             '[SERVICE]: ' + r.service,
-            '--------------------------------------------------'
+                                '--------------------------------------------------',
         ];
         
                             const reportDiv = document.createElement('div');

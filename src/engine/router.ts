@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import { IScreen, IScreenContext } from './interfaces';
 import { HubMenu } from '../screens/hubmenu';
 import { DevConsole } from '../core/consol';
+import { WsMonitorScreen } from '../screens/wsmonitor';
 
 /**
  * Допустимые идентификаторы экранов в экосистеме TypeTip Studio.
@@ -37,6 +38,7 @@ export class AppRouter {
   private readonly devConsole: DevConsole;
   /** Разделяемый контекст выполнения PTY-сессии. */
   private ctx!: IScreenContext;
+
 
   /**
    * Конструктор инициализирует базовые зависимости и регистрирует управляющее ядро.
