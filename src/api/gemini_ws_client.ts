@@ -30,9 +30,10 @@ export class GeminiWSClient {
 
         // 1. При открытии канала сразу шлем конфигурацию и наш системный вайб
         wsInstance.on("open", () => {
+            console.log('[llmc TIP -> СЕТЬ]: Ура, коннект с Gemini сервером установлен!');
             const setupMessage = {
                 setup: {
-                    model: "models/gemini-1.5-flash",
+                    model: "models/gemini-3.5-flash",
                     generationConfig: { responseModalities: ["TEXT"] },
                     systemInstruction: { 
                         parts: [{ text: "Ты ведущий AI-архитектор корпорации TJMIWGVCEC. Выдавай лаконичный код." }] 
@@ -44,6 +45,7 @@ export class GeminiWSClient {
 
         // 2. Слушаем непрерывный поток байтов из эфира
         wsInstance.on("message", (data: any) => {
+            console.log(`[llmc TIP -> СЕТЬ]: Пришли данные от сервера: ${data}`);
             const response = JSON.parse(data.toString());
 
             // Подтверждение, что сервер принял наши настройки
@@ -67,7 +69,8 @@ export class GeminiWSClient {
 
         // 3. Перехват ошибок
         wsInstance.on("error", (error: Error) => {
-            vscode.window.showErrorMessage(`[DDT TIP] Ошибка туннеля: ${error.message}`);
+            console.error('[llmc TIP -> СЕТЬ] Ошибка вебсокета:', error);
+            vscode.window.showErrorMessage(`[11mc TIP] Ошибка туннеля: ${error.message}`);
         });
     }
 

@@ -9,6 +9,7 @@ import { TypeTipTerminal } from './engine/terminal';
 import { openVibeGameTab } from './view/renderer';
 import { openVibeChatWebview } from './view/chat_panel';
 import { SaveTriggerManager } from "./events/save_trigger";
+import { GeminiWSClient } from './api/gemini_ws_client';
 
 // Глобальная ссылка на единственный экземпляр терминала в рамках сессии VS Code
 let activeTerminalInstance: vscode.Terminal | null = null;
