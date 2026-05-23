@@ -12,7 +12,7 @@ node_modules/
 .vscode-test.js
 coverage/
 .nyc_output/
-\zx-references
+hacker-taps/
 
 # Логи
 *.log
@@ -33,5 +33,13 @@ Thumbs.db
 .history/
 
 
-
+verstak.md
+repomix-output.xml
+процесс/
+vibe_chat.md
 typetip.code-workspace
+
+
+
+Screenshot 2026-05-22 201546.png
+gemini_ws_client old.ts
