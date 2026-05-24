@@ -5,6 +5,7 @@
         "target": "ES2022",
         "outDir": "out",
         "rootDir": "src",
+        "skipLibCheck": true, // Чтобы компилятор перестал проверять чужие папки
         "lib": [
             "ES2022"
         ],

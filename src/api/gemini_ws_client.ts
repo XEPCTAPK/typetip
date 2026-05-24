@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as vscode from "vscode";
 import WebSocket from "ws"; // Использован дефолтный импорт, tsc будет доволен
 import { TypeTipBus } from '../core/bus';

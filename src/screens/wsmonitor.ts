@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import { IScreen, IScreenContext } from '../engine/interfaces';
 import { AppRouter } from '../engine/router';
-import { GeminiWSClient } from '../api/gemini_ws_client'; 
+import { GeminiWSClient } from '../core/bus';
 import { getGeminiClient } from '../extension'; 
 
 

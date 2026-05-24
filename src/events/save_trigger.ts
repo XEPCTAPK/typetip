@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { BufferContextParser } from "../utils/cache_parser";
-import { GeminiWSClient } from "../api/gemini_ws_client"; // ИМПОРТ ЗДЕСЬ!
+import { GeminiWSClient } from '../core/bus'; // Скорректируй путь в зависимости от папки файла
 
 /**
  * Менеджер триггеров для перехвата сохранения документов.

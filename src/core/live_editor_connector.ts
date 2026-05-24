@@ -1,7 +1,6 @@
 // src/core/live_editor_connector.ts
 import * as vscode from 'vscode';
-import { GeminiWSClient } from '../api/gemini_ws_client';
-
+import { GeminiWSClient } from './bus';
 export class LiveEditorConnector {
     private typingTimer: NodeJS.Timeout | null = null;
     private isZhmenyaTyping = false;
