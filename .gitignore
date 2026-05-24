@@ -32,7 +32,7 @@ Thumbs.db
 # Игнорируем специфичные для VS Code временные файлы, если они появятся
 .history/
 
-
+tmp/
 verstak.md
 repomix-output.xml
 процесс/

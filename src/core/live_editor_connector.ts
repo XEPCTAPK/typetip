@@ -85,4 +85,18 @@ private async streamThoughtToZhmenya(editor: vscode.TextEditor) {
 
 
     }
+
+    public async requestArchitectureScan(): Promise<void> {
+    // 1. Собираем содержимое текущего файла
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) return;
+    
+    const code = activeEditor.document.getText();
+    
+    // 2. Формируем "Архитектурный конверт"
+    const prompt = `Проанализируй код и построй Mermaid-граф зависимостей:\n${code}`;
+    
+    // 3. Шлем в шину
+    this.geminiClient.sendPrompt(prompt);
+}
 }

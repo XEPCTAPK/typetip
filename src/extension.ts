@@ -9,8 +9,11 @@ import { TypeTipTerminal } from './engine/terminal';
 import { openVibeGameTab } from './view/renderer';
 import { openVibeChatWebview } from './view/chat_panel';
 import { SaveTriggerManager } from "./events/save_trigger";
-import { GeminiWSClient } from './core/bus';
+import { TypeTipBus, GeminiWSClient } from './core/bus';
 import { LiveEditorConnector } from './core/live_editor_connector';
+import { CityGameAgent } from './engine/city_game';
+
+
 
 // Глобальная ссылка на единственный экземпляр терминала в рамках сессии VS Code
 let activeTerminalInstance: vscode.Terminal | null = null;
@@ -19,6 +22,7 @@ let activeTerminalInstance: vscode.Terminal | null = null;
 let statusBarItem: vscode.StatusBarItem;
 
 let clientInstance: GeminiWSClient | undefined;
+let busSubscription: { dispose: () => void } | null = null;
 
 // Экспорт функции, которая безопасно вернет клиент
 export function getGeminiClient(): GeminiWSClient {
@@ -48,6 +52,10 @@ export function activate(context: vscode.ExtensionContext): void {
         activeTerminalInstance = null;
       }
     }
+
+    const cityGame = new CityGameAgent();
+    // Запускаем по команде
+    vscode.commands.registerCommand('typetip.playCities', () => cityGame.start());
 
     // Читаем пользовательскую конфигурацию дисплея перед созданием
     const config = vscode.workspace.getConfiguration('typetip');
@@ -127,19 +135,26 @@ export function activate(context: vscode.ExtensionContext): void {
 
 
 
-// 1. Вытаскиваем твой ключ из globalState (как в твоем коде)
-    const apiKey = context.globalState.get<string>('geminiApiKey') || ""; 
-    
-    if (apiKey) {
-        // 2. Инициализируем твой родной клиент
-        const geminiClient = new GeminiWSClient(apiKey, "default-channel");
-        
-        // 3. Запускаем наш живой коннектор к вкладкам
-        const liveConnector = new LiveEditorConnector(geminiClient);
-        liveConnector.activate(context);
+  // 1. Читаем ключ
+  const apiKey = context.globalState.get<string>('geminiApiKey') || ""; 
+
+  // 2. Инициализируем клиент (наш фасад из bus.ts сам подхватит режим BUS_CONFIG)
+  clientInstance = new GeminiWSClient(apiKey, "default-channel");
+
+  // 3. ПОДКЛЮЧАЕМСЯ К ШИНЕ (Fix утечки: сохраняем dispose)
+  busSubscription = TypeTipBus.on('WS_DATA_RECEIVED', (data: string) => {
+      // Здесь можно направить данные в лог, терминал или оверлей
+      console.log("[Extension:Bus]: Получен пакет данных:", data);
+  });
+
+  // 4. Запускаем живой коннектор
+  if (apiKey) {
+  const liveConnector = new LiveEditorConnector(clientInstance);
+  liveConnector.activate(context);
     } else {
         console.log("[Typetip]: Ключ geminiApiKey не найден, Live-режим Жмени ждет авторизации.");
     }
+  
 
 
 
@@ -181,5 +196,19 @@ function updateStatusBar(context: vscode.ExtensionContext): void {
  * Вызывается автоматически при выгрузке расширения.
  */
 export function deactivate(): void {
+  console.log("[Typetip]: Начало выгрузки модулей...");
+  
+  // Убиваем подписку на шину, предотвращая утечку памяти
+  if (busSubscription) {
+    busSubscription.dispose();
+    busSubscription = null;
+    console.log("[Typetip]: Подписка на шину закрыта.");
+  }
+
+  // Если был запущен клиент, отключаем его
+  if (clientInstance) {
+    clientInstance.disconnect();
+  }
+
   console.log("[Typetip]: Модули выгружены из памяти.");
 }
