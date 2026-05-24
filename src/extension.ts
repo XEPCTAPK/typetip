@@ -132,7 +132,7 @@ export function activate(context: vscode.ExtensionContext): void {
     
     if (apiKey) {
         // 2. Инициализируем твой родной клиент
-        const geminiClient = new GeminiWSClient(apiKey);
+        const geminiClient = new GeminiWSClient(apiKey, "default-channel");
         
         // 3. Запускаем наш живой коннектор к вкладкам
         const liveConnector = new LiveEditorConnector(geminiClient);

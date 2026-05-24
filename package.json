@@ -184,7 +184,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.19",
-    "@types/vscode": "^1.121.0",
+    "@types/vscode": "^1.120.0",
     "@types/ws": "^8.18.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
@@ -193,6 +193,8 @@
     "typescript-eslint": "^8.56.1"
   },
   "dependencies": {
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-typescript": "^0.23.2",
     "ws": "^8.20.1"
   }
 }

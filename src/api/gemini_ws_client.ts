@@ -39,7 +39,7 @@ export class GeminiWSClient {
      * @param onChunk Коллбэк для впечатывания прилетевшего текста в редактор
      * @param onComplete Коллбэк для закрытия соединения или финализации UI
      */
-private async connect(): Promise<void> {
+public async connect(): Promise<void> {
     const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
     
     this.ws = new WebSocket(url);
@@ -71,7 +71,7 @@ private async connect(): Promise<void> {
 
             // 1. Установка завершена
             if (response.setupComplete) {
-                this.isSetupComplete = true;
+                this.isSetupComplete = false; // надо заменить на true
                 return;
             }
 
@@ -129,6 +129,7 @@ private async connect(): Promise<void> {
 
 // В твоем SocketManager или там, где ты инициализируешь каналы
 public static async spawnAgent(channelId: string, secrets: any, provider: string = 'gemini') {
+    console.log(`[Gemini] Восстановление канала ${channelId}`);
     const secretKey = `typetip_auth_${provider}`;
     const token = await secrets.get(secretKey);
 
@@ -165,6 +166,6 @@ public async sendPrompt(prompt: string): Promise<void> {
         if (!this.ws) { return; }
         this.ws.close();
         this.ws = null;
-        this.isSetupComplete = false;
+        this.isSetupComplete = false; // надо заменить на трю
     }
 }
