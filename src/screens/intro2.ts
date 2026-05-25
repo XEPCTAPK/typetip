@@ -7,7 +7,7 @@
 
 import { IScreen, IScreenContext } from '../engine/interfaces';
 import { AppRouter } from '../engine/router';
-import { ANSI_ASSETS } from './assets/assets';
+import { ANSI_ASSETS } from './assets/assets4';
 
 interface WarpStar {
   x: number;

@@ -1,11 +1,19 @@
 /**
  * @fileoverview Главная точка входа расширения VS Code (Extension Lifecycle).
  * Управляет активацией, инициализирует статус-бар с механикой минимализма и запускает PTY.
- * * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation; xepctapk (ц) //™
+ * © The 'Just Make It Work' Group Vibe Coding Enterprises Corporation; xepctapk (ц) //™
  */
 
 import * as vscode from 'vscode';
 import { TypeTipTerminal } from './engine/terminal';
+import { openVibeGameTab } from './view/renderer';
+import { openVibeChatWebview } from './view/chat_panel';
+import { SaveTriggerManager } from "./events/save_trigger";
+import { TypeTipBus, GeminiWSClient } from './core/bus';
+import { LiveEditorConnector } from './core/live_editor_connector';
+import { CityGameAgent } from './engine/city_game';
+
+
 
 // Глобальная ссылка на единственный экземпляр терминала в рамках сессии VS Code
 let activeTerminalInstance: vscode.Terminal | null = null;
@@ -13,11 +21,24 @@ let activeTerminalInstance: vscode.Terminal | null = null;
 // Выносим указатель на статус-бар в глобальную область модуля для доступа при обновлении
 let statusBarItem: vscode.StatusBarItem;
 
+let clientInstance: GeminiWSClient | undefined;
+let busSubscription: { dispose: () => void } | null = null;
+
+// Экспорт функции, которая безопасно вернет клиент
+export function getGeminiClient(): GeminiWSClient {
+    if (!clientInstance) {
+        throw new Error("Жменя еще не проснулась! Клиент не инициализирован.");
+    }
+    return clientInstance;
+  }
+
 export function activate(context: vscode.ExtensionContext): void {
-  console.log('TypeTip Studio успешно активирован и готов к вайб-кодингу!');
+  console.log("[Typetip]: Запуск протоколов TJMIWGVCEC...");
 
   // 1. РЕГИСТРАЦИЯ КОМАНДЫ ЗАПУСКА (ОБЕСПЕЧИВАЕТ SINGLE INSTANCE)
   const startCommand = vscode.commands.registerCommand('typetip.start', async () => {
+    vscode.window.showInformationMessage("[11mc TIP]: Главный модуль активирован!");
+    
     // Если экземпляр уже существует, проверяем, не закрыл ли его пользователь
     if (activeTerminalInstance) {
       try {
@@ -31,6 +52,10 @@ export function activate(context: vscode.ExtensionContext): void {
         activeTerminalInstance = null;
       }
     }
+
+    const cityGame = new CityGameAgent();
+    // Запускаем по команде
+    vscode.commands.registerCommand('typetip.playCities', () => cityGame.start());
 
     // Читаем пользовательскую конфигурацию дисплея перед созданием
     const config = vscode.workspace.getConfiguration('typetip');
@@ -70,7 +95,6 @@ export function activate(context: vscode.ExtensionContext): void {
   // 2. СЛУШАТЕЛЬ УНИЧТОЖЕНИЯ ТЕРМИНАЛА (ДЛЯ СБРОСА ССЫЛКИ)
   const onTerminalClose = vscode.window.onDidCloseTerminal((closedTerminal) => {
     if (activeTerminalInstance && closedTerminal === activeTerminalInstance) {
-      // Если юзер грохнул нашу вкладку, зануляем трекер, позволяя создать её снова при следующем клике
       activeTerminalInstance = null;
       console.log('Сессия TypeTip Studio уничтожена пользователем. Ссылка сброшена.');
     }
@@ -78,11 +102,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(startCommand, onTerminalClose);
 
-
-  // 2. ИНИЦИАЛИЗАЦИЯ СТАТУС-БАРА
-  // Размещаем кнопку в левой части статус-бара с приоритетом 100 (чтобы не прыгала)
+  // 3. ИНИЦИАЛИЗАЦИЯ СТАТУС-БАРА
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  statusBarItem.command = 'typetip.start'; // Привязываем команду запуска к клику
+  statusBarItem.command = 'typetip.start';
   statusBarItem.tooltip = 'Запустить интерактивную кодинг-студию TypeTip';
   
   context.subscriptions.push(statusBarItem);
@@ -90,6 +112,71 @@ export function activate(context: vscode.ExtensionContext): void {
   // Отрисовываем актуальное состояние кнопки при старте VS Code
   updateStatusBar(context);
   statusBarItem.show();
+
+  // 4. РЕГИСТРАЦИЯ КОМАНДЫ GAME-ИНТЕРФЕЙСА
+  const vibeGameCommand = vscode.commands.registerCommand('typetip.startVibeGameOne', async () => {
+        await openVibeGameTab();
+        console.log("[11mc TIP -> ЮЗЕР]: Открыта вкладка кибер-тира.");
+    });
+  context.subscriptions.push(vibeGameCommand);
+
+  // 5. РЕГИСТРАЦИЯ КОМАНДЫ ЖИВОГО ЧАТА (WEBVIEW)
+  const chatCommand = vscode.commands.registerCommand('vibecoding.openChatSite', () => {
+        openVibeChatWebview(context);
+        console.log("[11mc TIP -> ЮЗЕР]: Запущен Webview чат Жмини.");
+    });
+    context.subscriptions.push(chatCommand);
+
+  // 6. ЗАПУСК ПЕРЕХВАТЧИКА СОХРАНЕНИЙ (ОДИН КОРРЕКТНЫЙ ВЫЗОВ)
+    SaveTriggerManager.register(context);
+    console.log("[Typetip]: Автоматический перехват сохранения успешно запущен.");
+  console.log("[Typetip]: Все системы успешно зарегистрированы в рантайме.");
+
+
+
+
+  // 1. Читаем ключ
+  const apiKey = context.globalState.get<string>('geminiApiKey') || ""; 
+
+  // 2. Инициализируем клиент (наш фасад из bus.ts сам подхватит режим BUS_CONFIG)
+  clientInstance = new GeminiWSClient(apiKey, "default-channel");
+
+  // 3. ПОДКЛЮЧАЕМСЯ К ШИНЕ (Fix утечки: сохраняем dispose)
+  busSubscription = TypeTipBus.on('WS_DATA_RECEIVED', (data: string) => {
+      // Здесь можно направить данные в лог, терминал или оверлей
+      console.log("[Extension:Bus]: Получен пакет данных:", data);
+  });
+
+  // 4. Запускаем живой коннектор
+  if (apiKey) {
+  const liveConnector = new LiveEditorConnector(clientInstance);
+  liveConnector.activate(context);
+    } else {
+        console.log("[Typetip]: Ключ geminiApiKey не найден, Live-режим Жмени ждет авторизации.");
+    }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 /**
@@ -105,6 +192,23 @@ function updateStatusBar(context: vscode.ExtensionContext): void {
     : `$(keyboard) VibeType`;
 }
 
+/**
+ * Вызывается автоматически при выгрузке расширения.
+ */
 export function deactivate(): void {
-  // Ресурсы статус-бара автоматически очистятся через context.subscriptions
+  console.log("[Typetip]: Начало выгрузки модулей...");
+  
+  // Убиваем подписку на шину, предотвращая утечку памяти
+  if (busSubscription) {
+    busSubscription.dispose();
+    busSubscription = null;
+    console.log("[Typetip]: Подписка на шину закрыта.");
+  }
+
+  // Если был запущен клиент, отключаем его
+  if (clientInstance) {
+    clientInstance.disconnect();
+  }
+
+  console.log("[Typetip]: Модули выгружены из памяти.");
 }
